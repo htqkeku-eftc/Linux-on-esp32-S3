@@ -57,11 +57,14 @@ esp-hosted)
 	echo ">>> esp-hosted firmware: applying the firmware patch + committing locally"
 	echo "    (esp_driver/CMakeLists.txt runs 'git reset --hard' on every cmake invocation;"
 	echo "     a local commit is the only thing that survives that -- see DEVELOPMENT.md)"
-	cd build/esp-hosted/esp_hosted_ng
+	cd build/esp-hosted
+	# The patch paths are relative to the esp-hosted repo root,
+	# i.e. "esp_hosted_ng/esp/...".  Run git apply from the repo root.
 	if git log --oneline -1 | grep -q "local-only, never push"; then
 		echo "    already committed locally -- skipping"
 	else
 		git apply "$LOCAL/patches/02-firmware-network-adapter.patch"
+		cd esp_hosted_ng
 		cp "$LOCAL/new-files/esp-hosted/network_adapter/partition_table.esp32s3.16m8r" \
 			"$LOCAL/new-files/esp-hosted/network_adapter/sdkconfig.defaults.esp32s3.16m8r" \
 			esp/esp_driver/network_adapter/
@@ -76,6 +79,7 @@ esp-hosted)
 		git -c user.email="local@backup" -c user.name="local-backup" \
 			commit -m "network_adapter: this project's firmware (local-only, never push)"
 	fi
+	cd ..
 
 	;;
 *)
