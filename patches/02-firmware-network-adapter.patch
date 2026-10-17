@@ -1,15 +1,15 @@
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/CMakeLists.txt b/esp_hosted_ng/esp/esp_driver/network_adapter/main/CMakeLists.txt
-index a46af63..b238aeb 100644
+index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/main/CMakeLists.txt
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/CMakeLists.txt
 @@ -1,4 +1,4 @@
-- set(COMPONENT_SRCS "app_main.c" "slave_bt.c" "cmd.c" "stats.c" "linux_boot.c" "linux_ipc.c" "linux_flash.c")
-+ set(COMPONENT_SRCS "app_main.c" "slave_bt.c" "cmd.c" "stats.c" "linux_boot.c" "linux_ipc.c" "linux_flash.c" "ble_prov.c" "pb_console.c" "terminal.c" "tft_driver.c")
+-set(COMPONENT_SRCS "app_main.c" "slave_bt.c" "cmd.c" "stats.c" "linux_boot.c" "linux_ipc.c" "linux_flash.c")
++set(COMPONENT_SRCS "app_main.c" "slave_bt.c" "cmd.c" "stats.c" "linux_boot.c" "linux_ipc.c" "linux_flash.c" "ble_prov.c" "pb_console.c" "terminal.c" "tft_driver.c")
  set(COMPONENT_ADD_INCLUDEDIRS "./include")
  
  if(CONFIG_IDF_TARGET_ESP32S3)
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/app_main.c b/esp_hosted_ng/esp/esp_driver/network_adapter/main/app_main.c
-index e7f35ad..c30f93a 100644
+index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/main/app_main.c
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/app_main.c
 @@ -43,10 +43,17 @@
@@ -57,7 +57,7 @@ index e7f35ad..c30f93a 100644
  	}
  	/* Free buffer handle */
  	if (buf_handle->free_buf_handle && buf_handle->priv_buffer_handle) {
-@@ -636,7 +652,6 @@ void app_main()
+@@ -636,6 +652,6 @@ void app_main()
  	}
  
  #ifdef CONFIG_BT_ENABLED
@@ -87,7 +87,7 @@ index e7f35ad..c30f93a 100644
  	linux_boot();
  }
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/cmd.c b/esp_hosted_ng/esp/esp_driver/network_adapter/main/cmd.c
-index 68001e1..0d90181 100644
+index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/main/cmd.c
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/cmd.c
 @@ -71,6 +71,8 @@ int esp_wifi_register_wpa_cb_internal(struct wpa_funcs *cb);
@@ -99,7 +99,7 @@ index 68001e1..0d90181 100644
  extern int wpa_parse_wpa_ie(const u8 *wpa_ie, size_t wpa_ie_len, wifi_wpa_ie_t *data);
  static inline void WPA_PUT_LE16(u8 *a, u16 val)
  {
-@@ -691,6 +693,7 @@ esp_err_t initialise_wifi(void)
+@@ -691,5 +693,6 @@ esp_err_t initialise_wifi(void)
  	wpa_cb.wpa3_parse_sae_msg = rx_sae_msg;
  	wpa_cb.wpa_config_done = config_done;
  	wpa_cb.wpa_config_parse_string  = wpa_config_parse_string;
@@ -108,7 +108,7 @@ index 68001e1..0d90181 100644
  	esp_wifi_register_wpa_cb_internal(&wpa_cb);
  
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/adapter.h b/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/adapter.h
-index ed95897..34aa149 100644
+index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/adapter.h
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/adapter.h
 @@ -56,6 +56,8 @@ enum ESP_INTERFACE_TYPE {
@@ -121,10 +121,10 @@ index ed95897..34aa149 100644
  };
  
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.c b/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.c
-index e19c62a..09905e8 100644
+index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.c
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.c
-@@ -6,6 +6,7 @@
+@@ -6,5 +6,6 @@
  #include "linux_ll.h"
  #include "hal/cache_hal.h"
  #include "hal/mmu_ll.h"
@@ -145,7 +145,7 @@ index e19c62a..09905e8 100644
  	for (i = 0x100; i < 0x180; ++i) {
  		dst[i] = 0x4000;
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/sdkconfig.defaults.esp32s3 b/esp_hosted_ng/esp/esp_driver/network_adapter/sdkconfig.defaults.esp32s3
-index 57f5958..97a07bd 100644
+index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/sdkconfig.defaults.esp32s3
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/sdkconfig.defaults.esp32s3
 @@ -1446,7 +1446,7 @@ CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_MAX_CERTS=200
@@ -159,6 +159,7 @@ index 57f5958..97a07bd 100644
  CONFIG_MBEDTLS_ROM_MD5=y
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/ble_prov.c b/esp_hosted_ng/esp/esp_driver/network_adapter/main/ble_prov.c
 new file mode 100644
+index 000000000..
 --- /dev/null
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/ble_prov.c
 @@ -0,0 +1,277 @@
@@ -441,6 +442,7 @@ new file mode 100644
 +#endif
 diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/ble_prov.h b/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/ble_prov.h
 new file mode 100644
+index 000000000..
 --- /dev/null
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/ble_prov.h
 @@ -0,0 +1,17 @@
