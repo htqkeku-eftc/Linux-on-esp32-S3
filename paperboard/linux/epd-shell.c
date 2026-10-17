@@ -31,7 +31,7 @@ int main(int argc,char** argv) {
     int master,display,status=0;
     char slave[128];
     pid_t child;
-    struct winsize size={.ws_row=34,.ws_col=75,.ws_xpixel=1200,.ws_ypixel=825};
+    struct winsize size={.ws_row=20,.ws_col=30,.ws_xpixel=240,.ws_ypixel=240};
     display=open("/dev/epd",O_WRONLY|O_CLOEXEC);
     if(display<0){perror("/dev/epd (Paperboard kernel/firmware required)");return 1;}
     master=posix_openpt(O_RDWR|O_NOCTTY|O_CLOEXEC);
@@ -40,7 +40,7 @@ int main(int argc,char** argv) {
     }
     if(ioctl(master,TIOCSWINSZ,&size)){perror("PTY size");return 1;}
     // Only the documented basic ANSI subset is available; avoid advertising xterm.
-    setenv("TERM","vt100",1);setenv("COLUMNS","75",1);setenv("LINES","34",1);
+    setenv("TERM","vt100",1);setenv("COLUMNS","30",1);setenv("LINES","20",1);
     if(tcgetattr(STDIN_FILENO,&saved)==0) {
         struct termios t=saved;cfmakeraw(&t);
         if(tcsetattr(STDIN_FILENO,TCSANOW,&t)){perror("serial raw mode");return 1;}
