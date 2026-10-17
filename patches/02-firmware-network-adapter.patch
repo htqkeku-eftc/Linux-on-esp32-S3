@@ -57,7 +57,7 @@ index 000000000..000000000 100644
  	}
  	/* Free buffer handle */
  	if (buf_handle->free_buf_handle && buf_handle->priv_buffer_handle) {
-@@ -636,6 +652,6 @@ void app_main()
+@@ -636,7 +652,6 @@ void app_main()
  	}
  
  #ifdef CONFIG_BT_ENABLED
@@ -99,7 +99,7 @@ index 000000000..000000000 100644
  extern int wpa_parse_wpa_ie(const u8 *wpa_ie, size_t wpa_ie_len, wifi_wpa_ie_t *data);
  static inline void WPA_PUT_LE16(u8 *a, u16 val)
  {
-@@ -691,5 +693,6 @@ esp_err_t initialise_wifi(void)
+@@ -691,6 +693,7 @@ esp_err_t initialise_wifi(void)
  	wpa_cb.wpa3_parse_sae_msg = rx_sae_msg;
  	wpa_cb.wpa_config_done = config_done;
  	wpa_cb.wpa_config_parse_string  = wpa_config_parse_string;
@@ -124,7 +124,7 @@ diff --git a/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.
 index 000000000..000000000 100644
 --- a/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.c
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/linux_ll_esp32s3.c
-@@ -6,5 +6,6 @@
+@@ -6,6 +6,7 @@
  #include "linux_ll.h"
  #include "hal/cache_hal.h"
  #include "hal/mmu_ll.h"
@@ -445,7 +445,7 @@ new file mode 100644
 index 000000000..
 --- /dev/null
 +++ b/esp_hosted_ng/esp/esp_driver/network_adapter/main/include/ble_prov.h
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,16 @@
 +// SPDX-License-Identifier: Apache-2.0
 +
 +#ifndef __BLE_PROV_H__
