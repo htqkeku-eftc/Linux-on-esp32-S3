@@ -1,0 +1,164 @@
+# Build the full Linux + firmware image (TFT) via container-build.sh.
+#
+# container-build.sh assumes:
+#   - repo lives at /work/Linux-on-esp32-S3/
+#   - all outputs land in /work/ (parent of the repo)
+#   - test "$work" = /work   (exactly /work, not a different path)
+#
+# This workflow:
+#   1. checkouts the repo
+#   2. builds the Docker image from build/Dockerfile
+#   3. sets up /work layout on the runner
+#   4. runs container-build.sh inside a container with /work bind-mounted
+#   5. verifies the TFT marker, uploads artifacts
+#
+# Estimated runtime: ~50 min on a 4-core ubuntu-latest runner.
+name: Build Linux ESP32-S3 (TFT)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: build-tft-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, package, verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show runner resources
+        run: |
+          echo "CPU cores: $(nproc)"
+          echo "Memory:"; free -h
+          echo "Disk:"; df -h
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          echo "Disk after cleanup:"; df -h
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg BUILDER_UID="$(id -u)" \
+            --build-arg BUILDER_GID="$(id -g)" \
+            --file build/Dockerfile \
+            --tag linux-on-esp32s3-tft:ci \
+            .
+
+      - name: Set up /work layout
+        run: |
+          # container-build.sh does:
+          #   repo=$(cd "$(dirname "$0")/.." && pwd)   → /work/Linux-on-esp32-S3
+          #   work=$(cd "$repo/.." && pwd)             → /work
+          #   test "$work" = /work                      # must be exactly /work
+          #
+          # We create /work on the host and mount it into the container.
+          # The repo is copied (not the checkout) so the build can write
+          # freely without polluting $GITHUB_WORKSPACE.
+          #
+          sudo mkdir -p /work
+          sudo chown "$(id -u):$(id -g)" /work
+          mkdir -p /work/refs /work/stages /work/logs /work/artifacts
+
+          # Copy the repo including .git (container-build.sh uses git ls-remote
+          # to verify pinned revisions in sources.lock).
+          # Exclude build-output/ and images/ to save disk (they are regenerated).
+          tar -C "$GITHUB_WORKSPACE" \
+            --exclude='build-output' --exclude='images' \
+            -cf - . | tar -xf - -C /work/Linux-on-esp32-S3/
+          echo "repo copied to /work/Linux-on-esp32-S3"
+          du -sh /work
+
+      - name: Run container-build.sh
+        run: |
+          docker create \
+            --name esp32-tft-builder \
+            --user "$(id -u):$(id -g)" \
+            --mount "type=bind,source=/work,target=/work" \
+            linux-on-esp32s3-tft:ci
+
+          # The ENTRYPOINT is bash build/container-build.sh; it runs all
+          # six stages: toolchain → base-rootfs → firmware → userspace →
+          # paperboard-profile → package.  Logs go to /work/logs/.
+          docker start -a esp32-tft-builder
+          RC=$?
+
+          # /work is bind-mounted so artifacts are already on the host at
+          # /work/artifacts/ — no docker cp needed.  Just remove the container.
+          docker rm -f esp32-tft-builder 2>/dev/null || true
+
+          exit $RC
+
+      - name: Show artifacts
+        run: |
+          echo "Artifacts in /work/artifacts:"
+          ls -lah /work/artifacts/ 2>/dev/null || echo "  (none)"
+          echo
+          echo "image sizes:"
+          du -sh /work/artifacts/* 2>/dev/null || true
+
+      - name: Verify TFT marker in firmware
+        run: |
+          FW="/work/artifacts/network_adapter.bin"
+          [ -f "$FW" ] || { echo "ERROR: $FW not found"; exit 1; }
+          if grep -q 'paperboard tft v1:' "$FW"; then
+            echo "PASS: 'paperboard tft v1:' marker found in network_adapter.bin"
+          else
+            echo "FAIL: 'paperboard tft v1:' not found in $FW"
+            exit 1
+          fi
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd /work/artifacts
+          sha256sum \
+            linux-esp32s3-native-full.bin \
+            network_adapter.bin \
+            bootloader.bin \
+            partition-table.bin \
+            > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Copy artifacts to workspace
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/artifacts-tft"
+          cp -a /work/artifacts/. "$GITHUB_WORKSPACE/artifacts-tft/"
+          echo "Copied to artifacts-tft/"
+          ls -lah "$GITHUB_WORKSPACE/artifacts-tft/"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32s3-tft-build
+          path: |
+            artifacts-tft/*.bin
+            artifacts-tft/*.cramfs
+            artifacts-tft/*.jffs2
+            artifacts-tft/xipImage
+            artifacts-tft/SHA256SUMS.txt
+            artifacts-tft/SHA256SUMS
+            artifacts-tft/rootfs.json
+            artifacts-tft/build-manifest.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Show build summary
+        run: |
+          {
+            echo "## TFT build checksums"
+            echo '```'
+            cat /work/artifacts/SHA256SUMS.txt 2>/dev/null || echo "(not available)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
