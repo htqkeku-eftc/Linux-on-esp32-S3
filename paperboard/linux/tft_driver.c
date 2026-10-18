@@ -50,17 +50,13 @@ static esp_err_t tft_cmd(uint8_t cmd) {
         .flags  = SPI_TRANS_USE_TXDATA,
     };
     tx.tx_data[0] = cmd;
-    esp_err_t err = spi_device_transmit(spi, &tx);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "cmd 0x%02X: %s", cmd, esp_err_to_name(err));
-    }
-    return err;
+    return spi_device_transmit(spi, &tx);
 }
 
 /*
  * Push `len` bytes of pixel data over SPI with RS HIGH.
- * Buffers are read from `buf` pointer directly (no USE_TXDATA needed
- * when `.data` is set).
+ * Uses tx_buffer / rx_buffer (no rx_buffer needed, but the union
+ * requires both to be initialized for DMA alignment).
  */
 static esp_err_t tft_data(const uint8_t *buf, size_t len) {
     const size_t CHUNK = 480;  /* one scanline of 240px * 2 bytes */
@@ -68,8 +64,9 @@ static esp_err_t tft_data(const uint8_t *buf, size_t len) {
     while (off < len) {
         size_t n = (len - off) > CHUNK ? CHUNK : (len - off);
         struct spi_transaction_t tx = {
-            .length  = (int)n,
-            .data    = buf + off,
+            .length     = n * 8,       /* bits */
+            .tx_buffer  = buf + off,
+            .rx_buffer  = NULL,
         };
         esp_err_t err = spi_device_transmit(spi, &tx);
         if (err != ESP_OK) {
@@ -159,11 +156,11 @@ esp_err_t tft_init(void) {
         .mosi_io_num     = TFT_SDA_IO,
         .miso_io_num     = -1,
         .sclk_io_num     = TFT_SCK_IO,
-        .quad_wp_io_num  = -1,
-        .quad_hd_io_num  = -1,
+        .quadwp_io_num   = -1,
+        .quadhd_io_num   = -1,
         .max_transfer_sz  = 512,
     };
-    esp_err_t err = spi_bus_initialize(SPI2_HOST, &buscfg, -1);
+    esp_err_t err = spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "spi_bus_init: %s", esp_err_to_name(err));
         return err;
@@ -172,10 +169,9 @@ esp_err_t tft_init(void) {
     const spi_device_interface_config_t devcfg = {
         .clock_speed_hz = 10 * 1000 * 1000,  /* 10 MHz */
         .mode           = 0,
-        .spi2cv_half_bit = false,
         .queue_size     = 3,
         .flags          = 0,
-        .cs_io          = -1,  /* manual CS via GPIO */
+        .spics_io_num   = -1,  /* manual CS via GPIO */
     };
     err = spi_bus_add_device(SPI2_HOST, &devcfg, &spi);
     if (err != ESP_OK) {
